@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block extra_meta %}
+
+<meta property="og:type" content="website" />
+<meta property="og:image" content="{{ render_url }}" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<meta property="discord:color" content="#000000" />
+<meta name="theme-color" content="#000000" />
+
+<link
+  rel="alternate"
+  href="{{ host }}/oembed.json?desc=&user={{ 'View on X' | urlencode }}&link={{ x_url | replace('/','%2F') | urlencode }}&ttype=link"
+  type="application/json+oembed"
+/>
+
+{% endblock %}

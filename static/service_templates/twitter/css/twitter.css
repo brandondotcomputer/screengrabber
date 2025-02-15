@@ -1,0 +1,81 @@
+body {
+  font-family: "TwitterChirp";
+  color: #999;
+}
+
+.container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.tweet-wrapper {
+  width: 600px;
+  padding: 20px;
+  background-color: #1e1e1e;
+}
+.tweet {
+  width: 100%;
+  padding: 20px;
+  background-color: #111;
+  border-radius: 8px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.tweet__header {
+  display: flex;
+  justify-content: space-between;
+}
+.tweet__header-left {
+  display: flex;
+}
+.tweet__account {
+  margin-left: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.tweet__account-name {
+  font-weight: 700;
+  color: rgb(231, 233, 234);
+}
+.tweet__account-handle {
+  font-feature-settings: "ss01";
+  color: rgb(113, 118, 123);
+}
+.tweet__profile-pic {
+  border-radius: 50%;
+  overflow: hidden;
+}
+.tweet__header-right svg {
+  color: #888;
+  width: 48px;
+  height: 48px;
+}
+
+.tweet__content {
+  margin-top: 12px;
+  color: rgb(231, 233, 234);
+}
+
+.tweet__info {
+  color: #888;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+.tweet__info-left {
+  display: flex;
+}
+.tweet__info-stat {
+  display: flex;
+  margin-right: 12px;
+}
+.tweet__info-stat:last-child {
+  margin-right: 0;
+}
+.tweet__info-stat svg {
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+}
