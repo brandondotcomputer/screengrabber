@@ -45,6 +45,7 @@ services:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     depends_on:
+      - screengrabber_certbot
       - screengrabber_twitter_web
     networks:
       - screengrabber_network
