@@ -1,27 +1,7 @@
-{% extends "base.html" %}
-
-{% block title %}Welcome to My Awesome Site{% endblock %}
-
-{% block meta_description %}Discover amazing content and join our community!{% endblock %}
-
-{% block extra_meta %}
-    <!-- Open Graph Meta Tags (Used by Discord and other platforms) -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="{{ url_for('index', _external=True) }}">
-    <meta property="og:title" content="🌟 Welcome to My Awesome Site">
-    <meta property="og:description" content="Join our amazing community and discover incredible content. Get started today!">
-    {# <meta property="og:image" content="{{ url_for('static', filename='images/banner.jpg', _external=True) }}"> #}
-    <meta property="og:image" content="{{ url_for('static', filename='images/cat.jpg', _external=True) }}">
-
-    <!-- Discord Specific Meta Tags -->
-    <meta property="discord:color" content="#7289DA">
-    <meta property="discord:author" content="Site Admin">
-    <meta property="discord:site" content="@AwesomeSite">
-    
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@AwesomeSite">
-    
-    <!-- Theme Color for Discord Embed -->
-    <meta name="theme-color" content="#7289DA">
+{% extends "base.html" %} {% block title %}screengrabx.com - pretty x embeds{%
+endblock %} {% block body %}
+<h3>hi 8)</h3>
+<a href="https://github.com/brandondotcomputer/screengrabber" target="_blank"
+  >source code</a
+>
 {% endblock %}

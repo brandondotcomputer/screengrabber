@@ -32,7 +32,7 @@ storage_service = StorageService(
 
 @app.route("/")
 def index():
-    return "hi 8) "
+    return render_template("index.html")
 
 
 @app.route("/<account>/status/<status_id>")

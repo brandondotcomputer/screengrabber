@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{% endblock %}" />
+
     <!-- Additional Meta Tags -->
     {% block extra_meta %}{% endblock %}
 
@@ -14,27 +17,6 @@
     {% block head_scripts %}{% endblock %}
   </head>
   <body>
-    {#
-    <!-- Navigation -->
-    <nav class="navbar">
-      {% block navigation %}
-      <a href="{{ url_for('index') }}">Home</a>
-      <a href="{{ url_for('about') }}">About</a>
-      <a href="{{ url_for('contact') }}">Contact</a>
-      {% endblock %}
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container">{% block content %}{% endblock %}</div>
-
-    <!-- Footer -->
-    <footer class="footer">
-      {% block footer %}
-      <p>&copy; 2025 My Website. All rights reserved.</p>
-      {% endblock %}
-    </footer>
-
-    <!-- Scripts -->
-    {% block scripts %}{% endblock %} #} {% block body %}{% endblock %}
+    {% block body %}{% endblock %}
   </body>
 </html>
