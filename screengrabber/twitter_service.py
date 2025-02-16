@@ -20,6 +20,9 @@ class Tweet:
     handle: str
     verified: bool
     avatar_img_url: str
+    has_media: bool
+    media_urls: list[dict[str, any]]
+    media_extended: list[dict[str, any]]
 
     date_epoch: str
     reply_count: Optional[int] = None
@@ -42,10 +45,7 @@ class Tweet:
         )
 
     def as_dict(self) -> dict:
-        # Get base fields using dataclass asdict
         base_dict = asdict(self)
-
-        # Add formatted fields
         base_dict.update(
             {
                 "formatted_date": self.formatted_date(),
@@ -77,4 +77,7 @@ class TwitterService:
             reply_count=data.get("replies", None),
             retweet_count=data.get("retweets", None),
             like_count=data.get("likes", None),
+            has_media=data.get("hasMedia", None),
+            media_urls=data.get("mediaURLs", None),
+            media_extended=data.get("media_extended", None),
         )

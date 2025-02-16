@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, request, current_app, send_file
 from io import BytesIO
 
+import requests
+
 from screengrabber import (
     CacheService,
     TwitterService,
@@ -36,6 +38,15 @@ storage_service = StorageService(
 )
 
 
+def strftime(date, format="%Y-%m-%d %H:%M:%S"):
+    if isinstance(date, str):
+        date = datetime.fromisoformat(date.replace("Z", "+00:00"))
+    return date.strftime(format)
+
+
+app.jinja_env.filters["strftime"] = strftime
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -45,7 +56,9 @@ def index():
 def twitter_tweet(account_name, status_id):
     visitor = identify_visitor(request.headers.get("User-Agent"))
 
-    cached_screengrab = cache_service.get_if_exists(account_name, status_id)
+    cached_screengrab = cache_service.get_twitter_screengrab_if_exists(
+        account_name, status_id
+    )
     if cached_screengrab is not None:
         cache_ttl_minutes = int(os.getenv("CACHE_TTL_MINUTES"))
         if datetime.now(timezone.utc) - cached_screengrab[2] < timedelta(
@@ -71,10 +84,12 @@ def twitter_tweet(account_name, status_id):
                 return render_template(
                     "service_templates/twitter/download.html",
                     host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
+                    s3_domain=os.getenv("S3_CUSTOM_DOMAIN"),
                     x_url=f"https://x.com/{account_name}/status/{status_id}",
                     render_url=render_url,
                     account=account_name,
                     status_id=status_id,
+                    medias=cache_service.get_twitter_screengrab_medias(status_id),
                 )
 
     current_app.logger.info(
@@ -93,14 +108,37 @@ def twitter_tweet(account_name, status_id):
     )
 
     try:
-        cache_service.add(
+        cache_service.add_twitter_screengrab(
             account_name=account_name, status_id=status_id, s3_path=s3_path
         )
     except Exception as e:
         current_app.logger.warning(f"Error inserting into CacheService: {str(e)}")
 
+    try:
+        tweet_info = twitter_service.get_tweet_info(account_name, status_id)
+        for media in tweet_info.media_extended:
+            current_app.logger.info(media)
+            response = requests.get(media["url"], stream=True)
+            response.raise_for_status()
+
+            media_obj = BytesIO(response.content)
+            s3_key = f"twitter/media/{status_id}_{media['url'].split('/')[-1]}"
+            storage_service.upload_file(file=media_obj, key=s3_key)
+
+            cache_service.add_twitter_screengrab_media(
+                status_id=status_id,
+                s3_path=s3_key,
+                source_url=media["url"],
+                media_type=media["type"],
+            )
+    except Exception as e:
+        current_app.logger.warning(
+            f"Error inserting twitter_screengrab_media into CacheService: {str(e)}"
+        )
+
+    render_url = f"{os.getenv('S3_CUSTOM_DOMAIN')}/{s3_path}"
+
     if visitor == Visitor.DISCORD:
-        render_url = f"{os.getenv('S3_CUSTOM_DOMAIN')}/{s3_path}"
         return render_template(
             "service_templates/twitter/discord_embed.html",
             host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
@@ -121,10 +159,12 @@ def twitter_tweet(account_name, status_id):
         return render_template(
             "service_templates/twitter/download.html",
             host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
+            s3_domain=os.getenv("S3_CUSTOM_DOMAIN"),
             x_url=f"https://x.com/{account_name}/status/{status_id}",
             render_url=render_url,
             account=account_name,
             status_id=status_id,
+            medias=cache_service.get_twitter_screengrab_medias(status_id),
         )
 
 

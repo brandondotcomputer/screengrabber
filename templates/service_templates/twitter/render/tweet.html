@@ -21,7 +21,20 @@
           </svg>
         </div>
       </div>
-      <div class="tweet__content">{{ tweet_info.tweet_text }}</div>
+      <div class="tweet__content">
+        <div class="tweet__text">{{ tweet_info.tweet_text }}</div>
+        {% if tweet_info.has_media %}
+        <div class="tweet__media">
+          {% if tweet_info.media_extended|length == 1 and
+          tweet_info.media_extended[0]["type"] == "image" %}
+          <img
+            class="tweet__image"
+            src="{{ tweet_info.media_extended[0]['url'] }}"
+          />
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
       <div class="tweet__info">
         <div class="tweet__info-left">
           <div class="tweet__info-stat tweet__info-stat--replies">

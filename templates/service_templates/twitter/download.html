@@ -1,8 +1,30 @@
 {% extends "base.html" %} {% block title %}screengrabx.com - pretty x embeds{%
 endblock %} {% block body %}
-<h3>hi 8)</h3>
-<a href="{{ render_url }}">download render</a><br />
-<a href="https://github.com/brandondotcomputer/screengrabber" target="_blank">
-  source code
-</a>
+<h2>screengrabx 8)</h2>
+<h4>{{ x_url }}</h4>
+
+{% if medias|length > 0 %}
+<ul>
+  {% for media in medias %}
+  <li>
+    <strong>{{ media["media_type"] }}</strong>:
+    <a href="{{ s3_domain }}/{{ media['s3_path'] }}" target="_blank">
+      {{ media['s3_path'] }}
+    </a>
+    <span>
+      (cached {{ media['cached_at']|strftime('%Y-%m-%d %H:%M:%S UTC') }})</span
+    >
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<ul>
+  <li><a href="{{ render_url }}">download render</a></li>
+</ul>
+
+<a href="https://github.com/brandondotcomputer/screengrabber" target="_blank"
+  >source code</a
+>
+
 {% endblock %}

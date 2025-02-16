@@ -58,6 +58,18 @@ body {
   color: rgb(231, 233, 234);
 }
 
+.tweet__media {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+.tweet__image {
+  max-height: 450px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
 .tweet__info {
   color: #888;
   display: flex;

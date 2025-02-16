@@ -24,8 +24,9 @@ class CacheService:
         self._logger.info("Initializing cache database...")
 
         with self._get_connection() as conn:
+            conn.execute("PRAGMA foreign_keys = 1")
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS screengrabs (
+                CREATE TABLE IF NOT EXISTS twitter_screengrabs (
                     account_name TEXT NOT NULL,
                     status_id TEXT NOT NULL,
                     cached_at TIMESTAMP NOT NULL,
@@ -34,8 +35,24 @@ class CacheService:
                 )
             """)
             conn.execute("""
-                CREATE INDEX IF NOT EXISTS idx_account_name 
-                ON screengrabs(account_name)
+                CREATE INDEX IF NOT EXISTS idx_twitter_screengrabs_account_name 
+                ON twitter_screengrabs(account_name)
+            """)
+            conn.execute("""
+                
+                CREATE TABLE IF NOT EXISTS twitter_screengrab_medias (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    status_id TEXT NOT NULL,
+                    cached_at TIMESTAMP NOT NULL,
+                    s3_path TEXT NOT NULL,
+                    source_url TEXT NOT NULL,
+                    media_type TEXT NOT NULL,
+                    FOREIGN KEY (status_id) REFERENCES twitter_screengrabs(status_id)
+                )
+            """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_twitter_screengrabs_medias_status_id
+                ON twitter_screengrab_medias(status_id)
             """)
 
     @contextmanager
@@ -49,7 +66,7 @@ class CacheService:
             finally:
                 conn.close()
 
-    def get_if_exists(
+    def get_twitter_screengrab_if_exists(
         self, account_name: str, status_id: str
     ) -> Optional[Tuple[str, str, datetime, str]]:
         """Get the full record if it exists.
@@ -65,7 +82,7 @@ class CacheService:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """SELECT account_name, status_id, cached_at, s3_path 
-                   FROM screengrabs WHERE account_name = ? AND status_id = ?""",
+                   FROM twitter_screengrabs WHERE account_name = ? AND status_id = ?""",
                 (account_name, status_id),
             )
             result = cursor.fetchone()
@@ -78,14 +95,55 @@ class CacheService:
                 )
             return None
 
-    def add(self, account_name: str, status_id: str, s3_path: str) -> None:
+    def add_twitter_screengrab(
+        self, account_name: str, status_id: str, s3_path: str
+    ) -> None:
         """Add a new record to the cache."""
         with self._get_connection() as conn:
             conn.execute(
                 """
-                INSERT OR REPLACE INTO screengrabs 
+                INSERT OR REPLACE INTO twitter_screengrabs 
                 (account_name, status_id, cached_at, s3_path)
                 VALUES (?, ?, ?, ?)
                 """,
                 (account_name, status_id, datetime.utcnow(), s3_path),
             )
+
+    def add_twitter_screengrab_media(
+        self, status_id: str, s3_path: str, source_url: str, media_type: str
+    ) -> None:
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO twitter_screengrab_medias 
+                (status_id, s3_path, source_url, media_type, cached_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (status_id, s3_path, source_url, media_type, datetime.utcnow()),
+            )
+
+    def get_twitter_screengrab_medias(self, status_id: str) -> list[dict[str, any]]:
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, status_id, s3_path, source_url, media_type, cached_at
+                FROM twitter_screengrab_medias
+                WHERE status_id = ?
+            """,
+                (status_id,),
+            )
+
+            results = cursor.fetchall()
+            return [
+                {
+                    "id": row[0],
+                    "status_id": row[1],
+                    "s3_path": row[2],
+                    "source_url": row[3],
+                    "media_type": row[4],
+                    "cached_at": datetime.fromisoformat(row[5]).replace(
+                        tzinfo=timezone.utc
+                    ),
+                }
+                for row in results
+            ]
