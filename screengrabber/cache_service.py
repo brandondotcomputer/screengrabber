@@ -49,23 +49,6 @@ class CacheService:
             finally:
                 conn.close()
 
-    def exists(self, account_name: str, status_id: str) -> bool:
-        """Check if a record exists for the given account_name and status_id.
-
-        Args:
-            account_name: The account name to check
-            status_id: The status ID to check
-
-        Returns:
-            bool: True if the record exists, False otherwise
-        """
-        with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT 1 FROM screengrabs WHERE account_name = ? AND status_id = ?",
-                (account_name, status_id),
-            )
-            return cursor.fetchone() is not None
-
     def get_if_exists(
         self, account_name: str, status_id: str
     ) -> Optional[Tuple[str, str, datetime, str]]:
@@ -95,32 +78,8 @@ class CacheService:
                 )
             return None
 
-    def get_s3_path(self, account_name: str, status_id: str) -> Optional[str]:
-        """Get the S3 path for a given account_name and status_id if it exists.
-
-        Args:
-            account_name: The account name to look up
-            status_id: The status ID to look up
-
-        Returns:
-            Optional[str]: The S3 path if found, None otherwise
-        """
-        with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT s3_path FROM screengrabs WHERE account_name = ? AND status_id = ?",
-                (account_name, status_id),
-            )
-            result = cursor.fetchone()
-            return result[0] if result else None
-
     def add(self, account_name: str, status_id: str, s3_path: str) -> None:
-        """Add a new record to the cache.
-
-        Args:
-            account_name: The account name to add
-            status_id: The status ID to add
-            s3_path: The S3 path where the content is stored
-        """
+        """Add a new record to the cache."""
         with self._get_connection() as conn:
             conn.execute(
                 """
@@ -130,18 +89,3 @@ class CacheService:
                 """,
                 (account_name, status_id, datetime.utcnow(), s3_path),
             )
-
-
-# Usage example:
-if __name__ == "__main__":
-    cache = CacheService("cache.db")
-
-    # Check if entry exists
-    exists = cache.exists("user123", "status456")
-
-    # Add new entry
-    if not exists:
-        cache.add("user123", "status456", "s3://bucket/path/to/file.png")
-
-    # Get S3 path
-    s3_path = cache.get_s3_path("user123", "status456")
