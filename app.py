@@ -1,24 +1,30 @@
 import logging
 import os
+import time
 import coloredlogs
-from flask import Flask, render_template, request
-from flask import send_file
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from flask import Flask, render_template, request, current_app, send_file
 from io import BytesIO
-from screengrabber import TwitterService
+
+from screengrabber import (
+    CacheService,
+    TwitterService,
+    ScreengrabberService,
+    StorageService,
+)
 from screengrabber.helpers import Visitor, identify_visitor
-from screengrabber.screengrabber import ScreengrabberService
-from screengrabber.storage_service import StorageService
-from urllib.parse import unquote
 
 _FORMAT = (
     "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)5d - %(message)s"
 )
 logging.basicConfig(format=_FORMAT)
-logger = logging.getLogger(__name__)
-coloredlogs.install(level=logging.INFO, logger=logger, fmt=_FORMAT)
+coloredlogs.install(level=logging.INFO, fmt=_FORMAT)
 
 app = Flask(__name__)
+load_dotenv(override=True)
 
+cache_service = CacheService(db_path=os.getenv("CACHE_DB_PATH"))
 twitter_service = TwitterService()
 screengrabber_service = ScreengrabberService()
 storage_service = StorageService(
@@ -35,36 +41,90 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/<account>/status/<status_id>")
-def twitter_tweet(account, status_id):
+@app.route("/<account_name>/status/<status_id>")
+def twitter_tweet(account_name, status_id):
     visitor = identify_visitor(request.headers.get("User-Agent"))
+
+    cached_screengrab = cache_service.get_if_exists(account_name, status_id)
+    if cached_screengrab is not None:
+        cache_ttl_minutes = int(os.getenv("CACHE_TTL_MINUTES"))
+        if datetime.now(timezone.utc) - cached_screengrab[2] < timedelta(
+            minutes=cache_ttl_minutes
+        ):
+            current_app.logger.info(
+                f"CACHE HIT: account_name={account_name}, status_id={status_id}"
+            )
+            render_url = f"{os.getenv('S3_CUSTOM_DOMAIN')}/{cached_screengrab[3]}"
+
+            if visitor == Visitor.DISCORD:
+                return render_template(
+                    "service_templates/twitter/discord_embed.html",
+                    host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
+                    x_url=f"https://x.com/{account_name}/status/{status_id}",
+                    render_url=render_url,
+                    account=account_name,
+                    status_id=status_id,
+                )
+
+            else:
+                # regular person
+                return render_template(
+                    "service_templates/twitter/download.html",
+                    host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
+                    x_url=f"https://x.com/{account_name}/status/{status_id}",
+                    render_url=render_url,
+                    account=account_name,
+                    status_id=status_id,
+                )
+
+    current_app.logger.info(
+        f"CACHE MISS: account_name={account_name}, status_id={status_id}"
+    )
+
     screengrab = screengrabber_service.get_screenshot(
-        url=f"http://localhost:{os.getenv('FLASK_PORT')}/render/{account}/status/{status_id}",
+        url=f"http://localhost:{os.getenv('FLASK_PORT')}/render/{account_name}/status/{status_id}",
         options={"width": 600},
     )
+    s3_path = f"twitter/renders/{status_id}_{int(time.time())}.jpg"
     storage_service.upload_file(
         file=BytesIO(screengrab),
-        key=f"twitter/renders/{status_id}.jpg",
+        key=s3_path,
         content_type="application/jpg",
     )
 
+    try:
+        cache_service.add(
+            account_name=account_name, status_id=status_id, s3_path=s3_path
+        )
+    except Exception as e:
+        current_app.logger.warning(f"Error inserting into CacheService: {str(e)}")
+
     if visitor == Visitor.DISCORD:
-        render_url = f"{os.getenv('S3_CUSTOM_DOMAIN')}/twitter/renders/{status_id}.jpg"
+        render_url = f"{os.getenv('S3_CUSTOM_DOMAIN')}/{s3_path}"
         return render_template(
             "service_templates/twitter/discord_embed.html",
             host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
-            x_url=f"https://x.com/{account}/status/{status_id}",
+            x_url=f"https://x.com/{account_name}/status/{status_id}",
             render_url=render_url,
-            account=account,
+            account=account_name,
             status_id=status_id,
         )
 
     else:
-        # regular person, send image of screengrab
-        return send_file(
-            BytesIO(screengrab),
-            mimetype="image/jpg",
-            download_name=f"{account}_{status_id}.jpg",
+        if request.args.get("render_only", None):
+            return send_file(
+                BytesIO(screengrab),
+                mimetype="image/jpg",
+                download_name=f"{account_name}_{status_id}.jpg",
+            )
+
+        return render_template(
+            "service_templates/twitter/download.html",
+            host=os.getenv("SCREENGRABBER_TWITTER_HOST"),
+            x_url=f"https://x.com/{account_name}/status/{status_id}",
+            render_url=render_url,
+            account=account_name,
+            status_id=status_id,
         )
 
 
@@ -82,24 +142,22 @@ def oembedend():
     user = request.args.get("user", None)
     link = request.args.get("link", None)
     ttype = request.args.get("ttype", None)
-    return oEmbedGen(desc, user, link, ttype)
+    account_name = request.args.get("account_name", None)
+    status_id = request.args.get("status_id", None)
+    return oEmbedGen(desc, user, link, ttype, account_name, status_id)
 
 
-def oEmbedGen(description, user, link, ttype):
+def oEmbedGen(description, user, link, ttype, account_name, status_id):
     out = {
         "type": ttype,
         "version": "1.0",
-        "provider_name": "screengrabx - pretty x posts",
-        "provider_url": "https://screengrabx.com",
+        "provider_name": "screengrabx - pretty x posts\nclick to view on X",
+        "provider_url": f"https://x.com/{account_name}/status/{status_id}",
         "title": description,
-        "author_name": user,
-        "author_url": unquote(link),
     }
-    logger.info(out)
 
     return out
 
 
 if __name__ == "__main__":
-    # app.run(threaded=False, processes=3)
     app.run()
