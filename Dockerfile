@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg62-turbo \
     libxrender1 \
     wget \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
 # # Create a wrapper script for wkhtmltopdf with xvfb
