@@ -1,5 +1,5 @@
 # Block AI stuff
-# https://github.com/ai-robots-txt/ai.robots.txt/blob/main/robots.txt (last updated 2025-15-02)
+# https://github.com/ai-robots-txt/ai.robots.txt/blob/main/robots.txt (last updated 2025-02-15)
 
 User-agent: AI2Bot
 User-agent: Ai2Bot-Dolma

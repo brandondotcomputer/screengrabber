@@ -8,8 +8,8 @@ Just switch any `x.com` link to `screengrabx.com` and the preview will appear li
 
 ## To-do
 
-- [ ] Add support for images
-- [ ] Add a caching system for images. CF Worker? MongoDB?
+- [x] Add support for images
+- [x] Add a caching system for images. CF Worker? MongoDB?
 - [ ] Create own version of X API to fetch tweets instead of relying on vxtwitter
 - [ ] BUG: Long tweets have their tweet_text truncated
 - [ ] Add a prettier README.md

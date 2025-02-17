@@ -25,13 +25,15 @@
         <div class="tweet__text">{{ tweet_info.tweet_text }}</div>
         {% if tweet_info.has_media %}
         <div class="tweet__media">
-          {% if tweet_info.media_extended|length == 1 and
+          {% if mosaic_url %}
+          <img class="tweet__image" src="{{ mosaic_url }}" />
+          {% else %} {% if tweet_info.media_extended|length == 1 and
           tweet_info.media_extended[0]["type"] == "image" %}
           <img
             class="tweet__image"
             src="{{ tweet_info.media_extended[0]['url'] }}"
           />
-          {% endif %}
+          {% endif %} {% endif %}
         </div>
         {% endif %}
       </div>
